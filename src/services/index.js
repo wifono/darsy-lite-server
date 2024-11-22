@@ -1,8 +1,11 @@
+import { roomExport } from './room-export/room-export.js'
 import { user } from './users/users.js'
 import { room } from './room/room.js'
 import { event } from './event/event.js'
 import { company } from './company/company.js'
 export const services = (app) => {
+  app.configure(roomExport)
+
   app.configure(user)
 
   app.configure(room)

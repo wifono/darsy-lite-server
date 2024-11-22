@@ -13,6 +13,12 @@ import {
   eventQueryResolver
 } from './event.schema.js'
 import { EventService, getOptions } from './event.class.js'
+import { populate } from 'feathers-hooks-common'
+import {
+  populateOrganizerAndLocation,
+  updateCompanyUsedTime,
+  updateCompanyUsedTimeOnDelete
+} from '../../hooks/event.hook.js'
 
 export const eventPath = 'event'
 export const eventMethods = ['find', 'get', 'create', 'patch', 'remove']
@@ -47,7 +53,11 @@ export const event = (app) => {
       remove: []
     },
     after: {
-      all: []
+      all: [],
+      find: [populateOrganizerAndLocation()],
+      create: [updateCompanyUsedTime()],
+      patch: [updateCompanyUsedTime()],
+      remove: [updateCompanyUsedTimeOnDelete()]
     },
     error: {
       all: []

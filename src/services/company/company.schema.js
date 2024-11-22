@@ -7,8 +7,8 @@ import { dataValidator, queryValidator } from '../../validators.js'
 export const companySchema = {
   $id: 'Company',
   type: 'object',
-  additionalProperties: false,
-  required: ['_id', 'name', 'time'],
+  additionalProperties: true,
+  required: ['_id'],
   properties: {
     _id: ObjectIdSchema(),
     name: { type: 'string' },
@@ -17,24 +17,16 @@ export const companySchema = {
     employees: {
       type: 'array',
       items: ObjectIdSchema()
-    }
+    },
+    assign: { type: 'string' },
+    company: { type: 'string' },
+    unassign: { type: 'string' },
+    companyId: { oneOf: [{ type: 'string' }, { type: 'null' }] }
   }
 }
 
 export const companyValidator = getValidator(companySchema, dataValidator)
-export const companyResolver = resolve({
-  employees: async (value, context) => {
-    // Optional resolver to populate employee data if necessary
-    const { app } = context
-    if (value && value.length) {
-      const users = await app.service('users').find({
-        query: { _id: { $in: value } }
-      })
-      return users.data
-    }
-    return value
-  }
-})
+export const companyResolver = resolve({})
 
 export const companyExternalResolver = resolve({})
 
@@ -43,12 +35,15 @@ export const companyDataSchema = {
   $id: 'CompanyData',
   type: 'object',
   additionalProperties: false,
-  required: ['name', 'time'],
+  required: [],
   properties: {
     ...companySchema.properties,
-    employees: {
-      type: 'array',
-      items: ObjectIdSchema() // Optional when creating
+    $addToSet: {
+      type: 'object',
+      additionalProperties: {
+        type: 'array',
+        items: ObjectIdSchema()
+      }
     }
   }
 }

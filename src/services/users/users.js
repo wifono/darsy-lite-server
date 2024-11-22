@@ -13,6 +13,12 @@ import {
   userQueryResolver
 } from './users.schema.js'
 import { UserService, getOptions } from './users.class.js'
+import {
+  assignUserToCompany,
+  removeUserFromCompany,
+  updateUserCompany,
+  populateCompany
+} from '../../hooks/employees.hook.js'
 
 export const userPath = 'users'
 export const userMethods = ['find', 'get', 'create', 'patch', 'remove']
@@ -46,10 +52,14 @@ export const user = (app) => {
       get: [],
       create: [schemaHooks.validateData(userDataValidator), schemaHooks.resolveData(userDataResolver)],
       patch: [schemaHooks.validateData(userPatchValidator), schemaHooks.resolveData(userPatchResolver)],
-      remove: []
+      remove: [removeUserFromCompany()]
     },
     after: {
-      all: []
+      all: [],
+      create: [assignUserToCompany()],
+      find: [populateCompany()],
+      get: [populateCompany()],
+      patch: [updateUserCompany()]
     },
     error: {
       all: []

@@ -13,6 +13,8 @@ import {
   companyQueryResolver
 } from './company.schema.js'
 import { CompanyService, getOptions } from './company.class.js'
+import { assignEmployeesFromQuery, unassignEmployeesFromQuery } from '../../hooks/employees.hook.js'
+import { deleteCompanyAndRemoveFromUsers } from '../../hooks/company.hook.js'
 
 export const companyPath = 'company'
 export const companyMethods = ['find', 'get', 'create', 'patch', 'remove']
@@ -23,12 +25,13 @@ export * from './company.schema.js'
 // A configure function that registers the service and its hooks via `app.configure`
 export const company = (app) => {
   // Register our service on the Feathers application
-  app.use(companyPath, new CompanyService(getOptions(app)), {
+  app.use(companyPath, new CompanyService(getOptions(app), app), {
     // A list of all methods this service exposes externally
     methods: companyMethods,
     // You can add additional custom events to be sent to clients here
     events: []
   })
+
   // Initialize hooks
   app.service(companyPath).hooks({
     around: {
@@ -43,8 +46,13 @@ export const company = (app) => {
       find: [],
       get: [],
       create: [schemaHooks.validateData(companyDataValidator), schemaHooks.resolveData(companyDataResolver)],
-      patch: [schemaHooks.validateData(companyPatchValidator), schemaHooks.resolveData(companyPatchResolver)],
-      remove: []
+      patch: [
+        schemaHooks.validateData(companyPatchValidator),
+        schemaHooks.resolveData(companyPatchResolver),
+        assignEmployeesFromQuery,
+        unassignEmployeesFromQuery
+      ],
+      remove: [deleteCompanyAndRemoveFromUsers()]
     },
     after: {
       all: []

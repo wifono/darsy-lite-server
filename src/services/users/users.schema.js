@@ -9,7 +9,7 @@ import { dataValidator, queryValidator } from '../../validators.js'
 export const userSchema = {
   $id: 'User',
   type: 'object',
-  additionalProperties: false,
+  additionalProperties: true,
   required: ['_id', 'email'],
   properties: {
     _id: ObjectIdSchema(),
@@ -19,20 +19,21 @@ export const userSchema = {
     password: { type: 'string' },
     company: {
       oneOf: [ObjectIdSchema(), { type: 'null' }]
-    }
+    },
+    companyId: { oneOf: [{ type: 'string' }, { type: 'null' }] }
   }
 }
 
 export const userValidator = getValidator(userSchema, dataValidator)
 export const userResolver = resolve({
-  company: async (value, context) => {
-    const { app } = context
-    if (value) {
-      const company = await app.service('companies').get(value)
-      return company
-    }
-    return value
-  }
+  // company: async (value, context) => {
+  //   const { app } = context
+  //   if (value) {
+  //     const company = await app.service('companies').get(value)
+  //     return company
+  //   }
+  //   return value
+  // }
 })
 
 export const userExternalResolver = resolve({
@@ -62,7 +63,8 @@ export const userPatchSchema = {
   additionalProperties: false,
   required: [],
   properties: {
-    ...userSchema.properties
+    ...userSchema.properties,
+    userId: { type: 'string' }
   }
 }
 export const userPatchValidator = getValidator(userPatchSchema, dataValidator)
@@ -80,13 +82,4 @@ export const userQuerySchema = {
   }
 }
 export const userQueryValidator = getValidator(userQuerySchema, queryValidator)
-export const userQueryResolver = resolve({
-  // If there is a user (e.g. with authentication), they are only allowed to see their own data
-  _id: async (value, user, context) => {
-    if (context.params.user) {
-      return context.params.user._id
-    }
-
-    return value
-  }
-})
+export const userQueryResolver = resolve({})

@@ -16,22 +16,13 @@ export const eventSchema = {
     location: {
       oneOf: [ObjectIdSchema(), { type: 'null' }]
     },
-    organizer: { type: 'string' }
+    organizer: { type: 'string' },
+    usedTime: { type: 'string' }
   }
 }
 
 export const eventValidator = getValidator(eventSchema, dataValidator)
-export const eventResolver = resolve({
-  location: async (value, context) => {
-    const { app } = context
-    if (value) {
-      // Populate the location (Room) object
-      const room = await app.service('rooms').get(value)
-      return room
-    }
-    return value
-  }
-})
+export const eventResolver = resolve({})
 
 export const eventExternalResolver = resolve({})
 
@@ -40,7 +31,7 @@ export const eventDataSchema = {
   $id: 'EventData',
   type: 'object',
   additionalProperties: false,
-  required: ['text'],
+  required: ['subject'],
   properties: {
     ...eventSchema.properties
   }
