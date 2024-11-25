@@ -6,55 +6,51 @@ export const populateOrganizerAndLocation = () => {
     const roomService = app.service('room')
     const companyService = app.service('company')
 
-    if (Array.isArray(result.data)) {
-      for (let event of result.data) {
-        if (event.organizer) {
-          try {
-            const organizer = await userService.get(event.organizer)
-            const company = await companyService.get(organizer.company)
-            const room = await roomService.get(event.location)
-
-            event.organizerName = organizer?.name
-            event.organizerCompany = company?.name
-            event.locationName = room?.name
-
-            const startTime = Number(event.start)
-            const endTime = Number(event.end)
-            const totalTimeInSeconds = endTime - startTime
-            event.totalTime = Math.round(totalTimeInSeconds / 60)
-          } catch (error) {
-            console.error('Error fetching organizer or company:', error)
-          }
-        }
-      }
-    } else if (result && !Array.isArray(result)) {
-      const event = result
+    const processEvent = async (event) => {
       if (event.organizer) {
         try {
           const organizer = await userService.get(event.organizer)
-          const company = await companyService.get(organizer.company)
-          const room = await roomService.get(event.location)
-
-          event.organizerName = organizer?.name
-          event.organizerCompany = company?.name
-          event.locationName = room?.name
-
-          const startTime = Number(event.start)
-          const endTime = Number(event.end)
-          const totalTimeInSeconds = endTime - startTime
-          event.totalTime = Math.round(totalTimeInSeconds / 60)
+          if (organizer.company) {
+            const company = await companyService.get(organizer.company)
+            event.organizerCompany = company?.name || 'Unknown Company'
+          } else {
+            console.warn(`Organizer ${event.organizer} has no associated company.`)
+          }
+          event.organizerName = organizer?.name || 'Unknown Organizer'
         } catch (error) {
-          console.error('Error fetching organizer or company:', error)
+          console.error(`Error fetching organizer (${event.organizer}):`, error)
         }
+      } else {
+        console.warn(`Event ${event._id} has no organizer.`)
       }
+
       if (event.location) {
         try {
-          const location = await roomService.get(event.location)
-          event.locationName = location.name
+          const room = await roomService.get(event.location)
+          event.locationName = room?.name || 'Unknown Location'
         } catch (error) {
-          console.error('Error fetching location:', error)
+          console.error(`Error fetching location (${event.location}):`, error)
         }
+      } else {
+        console.warn(`Event ${event._id} has no location.`)
       }
+
+      if (event.start && event.end) {
+        const startTime = Number(event.start)
+        const endTime = Number(event.end)
+        const totalTimeInSeconds = endTime - startTime
+        event.totalTime = Math.round(totalTimeInSeconds / 60)
+      } else {
+        console.warn(`Event ${event._id} has invalid start or end time.`)
+      }
+    }
+
+    if (Array.isArray(result.data)) {
+      for (let event of result.data) {
+        await processEvent(event)
+      }
+    } else if (result && !Array.isArray(result)) {
+      await processEvent(result)
     }
 
     return context

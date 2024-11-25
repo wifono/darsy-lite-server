@@ -13,6 +13,7 @@ import {
   roomQueryResolver
 } from './room.schema.js'
 import { RoomService, getOptions } from './room.class.js'
+import { assignCompaniesToRoom, unassignCompaniesFromQuery } from '../../hooks/room.hook.js'
 
 export const roomPath = 'room'
 export const roomMethods = ['find', 'get', 'create', 'patch', 'remove']
@@ -43,7 +44,12 @@ export const room = (app) => {
       find: [],
       get: [],
       create: [schemaHooks.validateData(roomDataValidator), schemaHooks.resolveData(roomDataResolver)],
-      patch: [schemaHooks.validateData(roomPatchValidator), schemaHooks.resolveData(roomPatchResolver)],
+      patch: [
+        schemaHooks.validateData(roomPatchValidator),
+        schemaHooks.resolveData(roomPatchResolver),
+        assignCompaniesToRoom,
+        unassignCompaniesFromQuery
+      ],
       remove: []
     },
     after: {

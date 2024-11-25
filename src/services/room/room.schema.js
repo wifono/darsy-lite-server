@@ -7,12 +7,17 @@ import { dataValidator, queryValidator } from '../../validators.js'
 export const roomSchema = {
   $id: 'Room',
   type: 'object',
-  additionalProperties: false,
+  additionalProperties: true,
   required: ['number', 'name'],
   properties: {
     number: { type: 'string' },
     name: { type: 'string' },
-    capacity: { type: 'string' }
+    capacity: { type: 'string' },
+    room: { type: 'string' },
+    assign: { type: 'string' },
+    companies: { type: 'array' },
+    rooms: { type: 'string' },
+    unassign: { type: 'string' }
   }
 }
 export const roomValidator = getValidator(roomSchema, dataValidator)

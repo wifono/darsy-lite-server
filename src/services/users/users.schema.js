@@ -37,7 +37,6 @@ export const userResolver = resolve({
 })
 
 export const userExternalResolver = resolve({
-  // The password should never be visible externally
   password: async () => undefined
 })
 

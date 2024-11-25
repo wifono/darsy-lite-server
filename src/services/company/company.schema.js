@@ -21,7 +21,8 @@ export const companySchema = {
     assign: { type: 'string' },
     company: { type: 'string' },
     unassign: { type: 'string' },
-    companyId: { oneOf: [{ type: 'string' }, { type: 'null' }] }
+    companyId: { oneOf: [{ type: 'string' }, { type: 'null' }] },
+    rooms: { type: 'array' }
   }
 }
 
