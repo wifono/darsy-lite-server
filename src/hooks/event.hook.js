@@ -13,6 +13,7 @@ export const populateOrganizerAndLocation = () => {
           if (organizer.company) {
             const company = await companyService.get(organizer.company)
             event.organizerCompany = company?.name || 'Unknown Company'
+            event.companyId = company._id || 'No ID'
           } else {
             console.warn(`Organizer ${event.organizer} has no associated company.`)
           }
