@@ -17,7 +17,11 @@ export const roomSchema = {
     assign: { type: 'string' },
     companies: { type: 'array' },
     rooms: { type: 'string' },
-    unassign: { type: 'string' }
+    unassign: { type: 'string' },
+    color: { type: 'string' },
+    floor: { type: 'string' },
+    city: { type: 'string' },
+    building: { type: 'string' }
   }
 }
 export const roomValidator = getValidator(roomSchema, dataValidator)
