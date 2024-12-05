@@ -18,7 +18,10 @@ export const eventSchema = {
     location: {
       oneOf: [ObjectIdSchema(), { type: 'null' }]
     },
-    organizer: { type: 'string' },
+    organizer: {
+      anyOf: [{ type: 'string' }, { type: 'object' }]
+    },
+    company: { type: 'string' },
     usedTime: { type: 'string' }
   }
 }

@@ -14,11 +14,7 @@ import {
 } from './event.schema.js'
 import { EventService, getOptions } from './event.class.js'
 import { populate } from 'feathers-hooks-common'
-import {
-  populateOrganizerAndLocation,
-  updateCompanyUsedTime,
-  updateCompanyUsedTimeOnDelete
-} from '../../hooks/event.hook.js'
+import { populateOrganizerAndLocation, validateCompanyEventTime } from '../../hooks/event.hook.js'
 
 export const eventPath = 'event'
 export const eventMethods = ['find', 'get', 'create', 'patch', 'remove']
@@ -48,16 +44,20 @@ export const event = (app) => {
       all: [schemaHooks.validateQuery(eventQueryValidator), schemaHooks.resolveQuery(eventQueryResolver)],
       find: [],
       get: [],
-      create: [schemaHooks.validateData(eventDataValidator), schemaHooks.resolveData(eventDataResolver)],
+      create: [
+        schemaHooks.validateData(eventDataValidator),
+        schemaHooks.resolveData(eventDataResolver),
+        validateCompanyEventTime()
+      ],
       patch: [schemaHooks.validateData(eventPatchValidator), schemaHooks.resolveData(eventPatchResolver)],
       remove: []
     },
     after: {
       all: [],
       find: [populateOrganizerAndLocation()],
-      create: [updateCompanyUsedTime()],
-      patch: [updateCompanyUsedTime()],
-      remove: [updateCompanyUsedTimeOnDelete()]
+      create: [],
+      patch: [],
+      remove: []
     },
     error: {
       all: []

@@ -1,5 +1,3 @@
-import moment from 'moment'
-
 export const populateOrganizerAndLocation = () => {
   return async (context) => {
     const { app, result } = context
@@ -58,153 +56,70 @@ export const populateOrganizerAndLocation = () => {
   }
 }
 
-export const updateCompanyUsedTime = () => async (context) => {
-  const { app, result } = context
+export const validateCompanyEventTime = () => async (context) => {
+  const { app, data } = context
 
-  if (!result) {
-    throw new Error('No event data available in the result')
+  if (!data.organizer || !data.start || !data.end) {
+    throw new Error('Missing required event data (organizer, start, or end)')
   }
 
-  const event = Array.isArray(result) ? result[0] : result
+  try {
+    const userService = app.service('users')
+    const eventService = app.service('event')
+    const companyService = app.service('company')
 
-  if (event.organizer) {
-    try {
-      const userService = app.service('users')
-      const companyService = app.service('company')
+    const organizer = await userService.get(data.organizer)
 
-      const organizer = await userService.get(event.organizer)
-      const company = await companyService.get(organizer.company)
+    if (!organizer.company) {
+      throw new Error('Organizer does not have an associated company')
+    }
 
+    const company = await companyService.get(organizer.company)
+
+    if (!company.time) {
+      throw new Error('Company does not have a defined time limit')
+    }
+
+    const companyTimeLimit = Number(company.time)
+
+    const newEventDate = new Date(Number(data.start) * 1000)
+    const monthStart = new Date(newEventDate.getFullYear(), newEventDate.getMonth(), 1)
+    const monthEnd = new Date(newEventDate.getFullYear(), newEventDate.getMonth() + 1, 1)
+
+    const events = await eventService.find({
+      query: {
+        company: organizer.companyId,
+        start: {
+          $gte: String(Math.floor(monthStart.getTime() / 1000)),
+          $lt: String(Math.floor(monthEnd.getTime() / 1000))
+        },
+        $select: ['start', 'end']
+      },
+      paginate: false
+    })
+
+    const totalEventTime = events.reduce((total, event) => {
       const startTime = Number(event.start)
       const endTime = Number(event.end)
-      const totalTimeInSeconds = endTime - startTime
-      const totalTimeInMinutes = Math.round(totalTimeInSeconds / 60)
+      return total + Math.round((endTime - startTime) / 60)
+    }, 0)
 
-      const currentUsedTime = company.usedTime ? Number(company.usedTime) : 0
-      const availableTime = Number(company.time)
+    const newEventTime = Math.round((Number(data.end) - Number(data.start)) / 60)
 
-      if (currentUsedTime + totalTimeInMinutes > availableTime) {
-        context.result = {
-          status: 'error',
-          message: 'Not enough available time to create this event',
-          code: 400
-        }
-        return context
-      }
-
-      const updatedUsedTime = currentUsedTime + totalTimeInMinutes
-
-      const updatedCompany = await companyService.patch(company._id, {
-        usedTime: String(updatedUsedTime)
-      })
-
-      console.log('Company used time updated (event created):', updatedCompany.usedTime)
-    } catch (error) {
-      console.error('Error updating company usedTime on event creation:', error)
-      context.result = {
-        status: 'error',
-        message: 'Error updating company usedTime on event creation',
-        code: 404
-      }
-      return context
+    if (totalEventTime + newEventTime > companyTimeLimit) {
+      throw new Error(
+        `The total event time exceeds the company’s available time. Company: ${company.name} (${company._id})`
+      )
     }
+  } catch (error) {
+    console.error('Error validating company event time:', error.message)
+    context.result = {
+      status: 'error',
+      message: error.message,
+      code: 400
+    }
+    return context
   }
 
   return context
-}
-
-export const updateCompanyUsedTimeOnDelete = () => async (context) => {
-  const { app, result } = context
-
-  if (!result) {
-    throw new Error('No event data available in the result')
-  }
-
-  const event = Array.isArray(result) ? result[0] : result
-
-  if (event.organizer) {
-    try {
-      const userService = app.service('users')
-      const companyService = app.service('company')
-
-      const organizer = await userService.get(event.organizer)
-      const company = await companyService.get(organizer.company)
-
-      const startTime = Number(event.start)
-      const endTime = Number(event.end)
-      const totalTimeInSeconds = endTime - startTime
-      const totalTimeInMinutes = Math.round(totalTimeInSeconds / 60)
-
-      const currentUsedTime = company.usedTime ? Number(company.usedTime) : 0
-
-      const updatedUsedTime = Math.max(currentUsedTime - totalTimeInMinutes, 0)
-
-      const updatedCompany = await companyService.patch(company._id, {
-        usedTime: String(updatedUsedTime)
-      })
-
-      console.log('Company used time updated (event deleted):', updatedCompany.usedTime)
-    } catch (error) {
-      console.error('Error updating company usedTime on event deletion:', error)
-      context.result = {
-        status: 'error',
-        message: 'Error updating company usedTime on event deletion',
-        code: 404
-      }
-      return context
-    }
-  }
-}
-
-export const resetUsedTimeAtMonthStart = () => {
-  return async (context) => {
-    const { app } = context
-    const companyService = app.service('company')
-    const eventService = app.service('event')
-
-    const currentDate = moment()
-    const nextMonthStart = currentDate.add(1, 'months').startOf('month').toDate()
-
-    const companies = await companyService.find({
-      query: {
-        $select: ['_id', 'usedTime']
-      }
-    })
-
-    for (const company of companies.data) {
-      const eventsInNextMonth = await eventService.find({
-        query: {
-          start: {
-            $gte: nextMonthStart
-          },
-          organizer: company._id
-        }
-      })
-      console.log(eventsInNextMonth)
-
-      // if (eventsInNextMonth.length === 0) {
-      //   await companyService.patch(company._id, {
-      //     usedTime: '0'
-      //   })
-      //   console.log(`Reset usedTime to 0 for company ${company._id}`)
-      // } else {
-      //   let totalUsedTimeInNextMonth = 0
-      //   for (const event of eventsInNextMonth) {
-      //     const startTime = Number(event.start)
-      //     const endTime = Number(event.end)
-      //     const totalTimeInSeconds = endTime - startTime
-      //     const totalTimeInMinutes = Math.round(totalTimeInSeconds / 60)
-      //     totalUsedTimeInNextMonth += totalTimeInMinutes
-      //   }
-      //   const currentUsedTime = company.usedTime ? Number(company.usedTime) : 0
-      //   const updatedUsedTime = currentUsedTime + totalUsedTimeInNextMonth
-      //   await companyService.patch(company._id, {
-      //     usedTime: String(updatedUsedTime)
-      //   })
-      //   console.log(`Updated usedTime for company ${company._id} to ${updatedUsedTime}`)
-      // }
-    }
-
-    return context
-  }
 }
