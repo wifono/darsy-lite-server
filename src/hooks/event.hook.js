@@ -1,3 +1,5 @@
+import moment from 'moment'
+
 export const populateOrganizerAndLocation = () => {
   return async (context) => {
     const { app, result } = context
@@ -14,8 +16,6 @@ export const populateOrganizerAndLocation = () => {
             const company = await companyService.get(organizer.company)
             event.organizerCompany = company?.name || 'Unknown Company'
             event.companyId = company._id || 'No ID'
-          } else {
-            console.warn(`Organizer ${event.organizer} has no associated company.`)
           }
           event.organizerName = organizer?.name || 'Unknown Organizer'
         } catch (error) {
@@ -137,7 +137,7 @@ export const updateCompanyUsedTimeOnDelete = () => async (context) => {
 
       const currentUsedTime = company.usedTime ? Number(company.usedTime) : 0
 
-      const updatedUsedTime = currentUsedTime - totalTimeInMinutes
+      const updatedUsedTime = Math.max(currentUsedTime - totalTimeInMinutes, 0)
 
       const updatedCompany = await companyService.patch(company._id, {
         usedTime: String(updatedUsedTime)
@@ -154,6 +154,57 @@ export const updateCompanyUsedTimeOnDelete = () => async (context) => {
       return context
     }
   }
+}
 
-  return context
+export const resetUsedTimeAtMonthStart = () => {
+  return async (context) => {
+    const { app } = context
+    const companyService = app.service('company')
+    const eventService = app.service('event')
+
+    const currentDate = moment()
+    const nextMonthStart = currentDate.add(1, 'months').startOf('month').toDate()
+
+    const companies = await companyService.find({
+      query: {
+        $select: ['_id', 'usedTime']
+      }
+    })
+
+    for (const company of companies.data) {
+      const eventsInNextMonth = await eventService.find({
+        query: {
+          start: {
+            $gte: nextMonthStart
+          },
+          organizer: company._id
+        }
+      })
+      console.log(eventsInNextMonth)
+
+      // if (eventsInNextMonth.length === 0) {
+      //   await companyService.patch(company._id, {
+      //     usedTime: '0'
+      //   })
+      //   console.log(`Reset usedTime to 0 for company ${company._id}`)
+      // } else {
+      //   let totalUsedTimeInNextMonth = 0
+      //   for (const event of eventsInNextMonth) {
+      //     const startTime = Number(event.start)
+      //     const endTime = Number(event.end)
+      //     const totalTimeInSeconds = endTime - startTime
+      //     const totalTimeInMinutes = Math.round(totalTimeInSeconds / 60)
+      //     totalUsedTimeInNextMonth += totalTimeInMinutes
+      //   }
+      //   const currentUsedTime = company.usedTime ? Number(company.usedTime) : 0
+      //   const updatedUsedTime = currentUsedTime + totalUsedTimeInNextMonth
+      //   await companyService.patch(company._id, {
+      //     usedTime: String(updatedUsedTime)
+      //   })
+      //   console.log(`Updated usedTime for company ${company._id} to ${updatedUsedTime}`)
+      // }
+    }
+
+    return context
+  }
 }

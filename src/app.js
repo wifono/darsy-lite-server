@@ -18,6 +18,8 @@ import { mongodb } from './mongodb.js'
 import { authentication } from './authentication.js'
 import { services } from './services/index.js'
 import { channels } from './channels.js'
+import { resetUsedTimeAtMonthStart } from './hooks/event.hook.js'
+import cron from 'node-cron'
 
 const app = express(feathers())
 
@@ -60,7 +62,19 @@ app.hooks({
 })
 // Register application setup and teardown hooks here
 app.hooks({
-  setup: [],
+  setup: [
+    () => {
+      cron.schedule('*/10 * * * * *', async () => {
+        try {
+          console.log('Running cron job to reset used time for companies...')
+          const resetHook = resetUsedTimeAtMonthStart()
+          await resetHook({ app }) // Pass app context to the hook
+        } catch (error) {
+          console.error('Error running resetUsedTimeAtMonthStart cron job:', error)
+        }
+      })
+    }
+  ],
   teardown: []
 })
 

@@ -146,3 +146,34 @@ export const unassignCompaniesFromQuery = async (context) => {
 
   return context
 }
+
+export const deleteEventsOnRoomRemove = async (context) => {
+  const { app, id } = context
+
+  if (!id) {
+    throw new Error('Room ID is required to delete events')
+  }
+
+  const eventService = app.service('event')
+
+  try {
+    const events = await eventService.find({
+      query: {
+        location: id
+      },
+      paginate: false
+    })
+
+    for (const event of events) {
+      await eventService.remove(event._id)
+      console.log(`Deleted event with ID: ${event._id}`)
+    }
+
+    console.log(`All events for room ${id} have been deleted.`)
+  } catch (error) {
+    console.error(`Failed to delete events for room ${id}:`, error)
+    throw new Error('Error deleting associated events')
+  }
+
+  return context
+}

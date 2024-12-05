@@ -13,7 +13,11 @@ import {
   roomQueryResolver
 } from './room.schema.js'
 import { RoomService, getOptions } from './room.class.js'
-import { assignCompaniesToRoom, unassignCompaniesFromQuery } from '../../hooks/room.hook.js'
+import {
+  assignCompaniesToRoom,
+  deleteEventsOnRoomRemove,
+  unassignCompaniesFromQuery
+} from '../../hooks/room.hook.js'
 
 export const roomPath = 'room'
 export const roomMethods = ['find', 'get', 'create', 'patch', 'remove']
@@ -50,7 +54,7 @@ export const room = (app) => {
         assignCompaniesToRoom,
         unassignCompaniesFromQuery
       ],
-      remove: []
+      remove: [deleteEventsOnRoomRemove]
     },
     after: {
       all: []

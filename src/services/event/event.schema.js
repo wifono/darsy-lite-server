@@ -11,7 +11,9 @@ export const eventSchema = {
   properties: {
     _id: ObjectIdSchema(),
     subject: { type: 'string' },
-    start: { type: 'string' },
+    start: {
+      anyOf: [{ type: 'string' }, { type: 'object' }]
+    },
     end: { type: 'string' },
     location: {
       oneOf: [ObjectIdSchema(), { type: 'null' }]
