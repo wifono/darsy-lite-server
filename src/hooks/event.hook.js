@@ -71,7 +71,7 @@ export const validateCompanyEventTime = () => async (context) => {
     const organizer = await userService.get(data.organizer)
 
     if (!organizer.company) {
-      throw new Error('Organizer does not have an associated company')
+      return context
     }
 
     const company = await companyService.get(organizer.company)
